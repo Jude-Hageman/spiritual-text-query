@@ -4,6 +4,7 @@ import com.example.service.LlamaService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 
 /**
  * Controller for handling Llama API requests.
@@ -24,6 +25,9 @@ public class LlamaController {
      */
     @PostMapping("/process")
     public ResponseEntity<String> processText(@RequestBody String prompt) {
+        if (!StringUtils.hasText(prompt)) {
+            return ResponseEntity.badRequest().body("Prompt cannot be empty");
+        }
         String response = llamaService.processText(prompt);
         return ResponseEntity.ok(response);
     }
