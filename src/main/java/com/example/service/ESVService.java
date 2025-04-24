@@ -13,19 +13,23 @@ import org.json.JSONObject;
 
 @Service
 @Slf4j
-public class ESVService {
+public class ESVService extends TextProcessingService {
     
     @Value("${esv.api.key}")
     private String apiKey;
     
-    private final RestTemplate restTemplate;
     private static final String ESV_API_BASE_URL = "https://api.esv.org/v3/passage/text/";
     
     public ESVService(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
+        super(restTemplate);
     }
     
-    public String getVerseText(String reference) {
+    @Override
+    public String processText(String reference) throws Exception {
+        return getVerseText(reference);
+    }
+
+    public String getVerseText(String reference) throws Exception {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Token " + apiKey);
         
@@ -52,7 +56,7 @@ public class ESVService {
             return passages.trim();
             
         } catch (Exception e) {
-            log.error("Error fetching verse from ESV API: {}", e.getMessage());
+            handleApiError(e, "ESV");
             throw e;
         }
     }

@@ -27,7 +27,10 @@ public class LlamaConfig {
     public LlamaConfig(Environment environment) {
         this.environment = environment;
     }
-    
+
+    /**
+     * Initializes the LlamaConfig class.
+     */
     @PostConstruct
     public void init() {
         // Log configuration details
