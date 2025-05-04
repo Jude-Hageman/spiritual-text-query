@@ -20,6 +20,10 @@ public class LlamaService extends TextProcessingService {
     private final LlamaConfig llamaConfig;
     private final ESVService esvService;
     private final BibleReferenceParser bibleReferenceParser;
+    
+    private static final String BIBLE_CONTEXT_PROMPT = "You are a biblical assistant. Only answer questions related to the Bible, biblical interpretation, theology, and religious matters. If a question is not related to these topics, politely inform the user that you can only assist with Bible-related questions. ";
+    
+    private static final String NON_BIBLICAL_RESPONSE = "I apologize, but I can only assist with questions related to the Bible, biblical interpretation, theology, and religious matters. Please rephrase your question to focus on these topics.";
 
     public LlamaService(RestTemplate restTemplate, LlamaConfig llamaConfig, 
                        ESVService esvService, BibleReferenceParser bibleReferenceParser) {
@@ -29,9 +33,45 @@ public class LlamaService extends TextProcessingService {
         this.bibleReferenceParser = bibleReferenceParser;
     }
 
+    /**
+     * Determines if a question is related to biblical or religious topics.
+     *
+     * @param text The text to analyze
+     * @return true if the text contains biblical keywords or references
+     */
+    protected boolean isBibleRelatedQuestion(String text) {
+        // List of keywords related to biblical/religious content
+        String[] biblicalKeywords = {
+            "bible", "scripture", "jesus", "god", "christ", "holy spirit",
+            "psalm", "gospel", "prophet", "apostle", "church", "faith",
+            "prayer", "worship", "sin", "salvation", "heaven", "hell",
+            "christian", "biblical", "testament", "verse", "chapter",
+            "moses", "abraham", "david", "paul", "peter", "mary",
+            "cross", "resurrection", "baptism", "communion", "trinity",
+            "sermon", "pastor", "priest", "minister", "theology",
+            "spiritual", "religious", "sacred", "divine", "lord"
+        };
+        
+        String lowerText = text.toLowerCase();
+        // Check if the text contains any biblical keywords
+        for (String keyword : biblicalKeywords) {
+            if (lowerText.contains(keyword.toLowerCase())) {
+                return true;
+            }
+        }
+        
+        // Also return true if it contains a Bible reference
+        return bibleReferenceParser.containsBibleReference(text);
+    }
+
     @Override
     public String processText(String prompt) throws Exception {
         try {
+            // First check if the question is Bible-related
+            if (!isBibleRelatedQuestion(prompt)) {
+                return NON_BIBLICAL_RESPONSE;
+            }
+
             // Check if the prompt contains a Bible reference
             if (bibleReferenceParser.containsBibleReference(prompt)) {
                 String reference = bibleReferenceParser.extractReference(prompt);
@@ -42,6 +82,9 @@ public class LlamaService extends TextProcessingService {
                     prompt = prompt + "\n\nBible verse text: " + verseText;
                 }
             }
+
+            // Add the Bible context to the prompt
+            prompt = BIBLE_CONTEXT_PROMPT + "\n\nUser question: " + prompt;
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
